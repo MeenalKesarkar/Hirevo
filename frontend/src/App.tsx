@@ -1,9 +1,23 @@
+import { useEffect, useState } from "react";
+import { Navigate, Outlet, useLocation } from "react-router";
 import SplashScreen from "./components/SplashScreen";
 
 export default function App() {
-  return (
-    <div className="grid min-h-svh w-full place-items-center bg-white md:p-4 lg:p-0">
-      <SplashScreen />
-    </div>
-  );
+  const [splashComplete, setSplashComplete] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSplashComplete(true), 5000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (!splashComplete) {
+    return <SplashScreen />;
+  }
+
+  if (location.pathname !== "/login") {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Outlet />;
 }

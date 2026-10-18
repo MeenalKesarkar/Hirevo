@@ -71,6 +71,64 @@ body {
   min-width: 320px;
 }
 
+.login-page {
+  isolation: isolate;
+  background: linear-gradient(140deg, #f5f2fb 0%, #f8f6fc 52%, #eee9f7 100%);
+}
+
+.login-photo {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background-image:
+    linear-gradient(0deg, rgb(42 26 94 / 10%), rgb(42 26 94 / 10%)),
+    linear-gradient(0deg, rgb(248 246 252 / 64%), rgb(248 246 252 / 54%)),
+    url("/images/hirevo-login-office.png");
+  background-position: center, 30% center;
+  background-size: cover;
+  pointer-events: none;
+}
+
+@media (max-height: 600px) {
+  .login-page {
+    padding-block: 0.75rem;
+  }
+
+  .login-content header {
+    margin-bottom: 0.65rem;
+  }
+
+  .login-content header svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .login-content header div {
+    font-size: 1.5rem;
+  }
+
+  .login-content > div {
+    margin-bottom: 0.65rem;
+  }
+
+  .login-content h1 {
+    font-size: 1.65rem;
+  }
+
+  .login-content form.space-y-4 > :not(:last-child) {
+    margin-block-start: 0.55rem;
+    margin-block-end: 0;
+  }
+
+  .login-content input:not([type="checkbox"]) {
+    padding-block: 0.55rem;
+  }
+
+  .login-content form > button {
+    padding-block: 0.6rem;
+  }
+}
+
 .splash-screen {
   height: 100svh;
   max-width: none;
