@@ -1,13 +1,30 @@
 import { useState, type FormEvent } from "react";
 import { Eye, EyeOff, MoveRight } from "lucide-react";
+import { useLocation, useNavigate } from "react-router";
+import { signIn } from "../services/api";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setStatus("Your sign-in form is ready for authentication API integration.");
+    setStatus("");
+    setIsSubmitting(true);
+    const form = new FormData(event.currentTarget);
+    try {
+      await signIn(String(form.get("identifier") ?? ""), String(form.get("password") ?? ""), rememberMe);
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+      navigate(from && from !== "/login" ? from : "/", { replace: true });
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not sign in. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -30,14 +47,14 @@ export default function LoginPage() {
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-lav-900">Email address</span>
+            <span className="mb-2 block text-sm font-semibold text-lav-900">Username or email</span>
             <input
-              autoComplete="email"
+              autoComplete="username"
               className="w-full rounded-xl border border-[#D7CDED] bg-white/90 px-4 py-3.5 text-[15px] text-lav-900 outline-none transition placeholder:text-[#978DAF] focus:border-lav-500 focus:ring-4 focus:ring-lav-200/50"
-              name="email"
-              placeholder="you@example.com"
+              name="identifier"
+              placeholder="your username or email"
               required
-              type="email"
+              type="text"
             />
           </label>
 
@@ -65,7 +82,7 @@ export default function LoginPage() {
 
           <div className="flex items-center justify-between gap-3 pt-1 text-sm">
             <label className="flex items-center gap-2.5 text-lav-700">
-              <input className="h-4 w-4 accent-[#5B45B0]" type="checkbox" />
+              <input checked={rememberMe} className="h-4 w-4 accent-[#5B45B0]" onChange={(event) => setRememberMe(event.target.checked)} type="checkbox" />
               Remember me
             </label>
             <button
@@ -78,10 +95,11 @@ export default function LoginPage() {
           </div>
 
           <button
-            className="group flex w-full items-center justify-center gap-2 rounded-xl bg-lav-900 px-5 py-3.5 text-sm font-semibold text-lav-50 shadow-lg shadow-lav-900/15 transition hover:-translate-y-0.5 hover:bg-lav-700 focus:outline-none focus:ring-4 focus:ring-lav-200"
+            className="group flex w-full items-center justify-center gap-2 rounded-xl bg-lav-900 px-5 py-3.5 text-sm font-semibold text-lav-50 shadow-lg shadow-lav-900/15 transition hover:-translate-y-0.5 hover:bg-lav-700 focus:outline-none focus:ring-4 focus:ring-lav-200 disabled:cursor-wait disabled:opacity-70"
+            disabled={isSubmitting}
             type="submit"
           >
-            Sign in <MoveRight className="transition-transform group-hover:translate-x-1" size={17} />
+            {isSubmitting ? "Signing in…" : "Sign in"} {!isSubmitting && <MoveRight className="transition-transform group-hover:translate-x-1" size={17} />}
           </button>
 
           <div className="flex items-center gap-4 py-1" aria-hidden="true">

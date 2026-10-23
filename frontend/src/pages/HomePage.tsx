@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -12,6 +12,9 @@ import {
   Compass,
   Flame,
   Heart,
+  ImagePlus,
+  LoaderCircle,
+  LogOut,
   MapPin,
   MessageCircle,
   MoreHorizontal,
@@ -19,10 +22,12 @@ import {
   Search,
   Send,
   Sparkles,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
-import { Link } from "react-router";
+import { useNavigate } from "react-router";
+import { apiRequest, getCurrentUser, signOut } from "../services/api";
 import "./HomePage.css";
 
 type Job = {
@@ -39,7 +44,8 @@ type Job = {
 };
 
 type Post = {
-  id: number;
+  id: string;
+  authorId?: string;
   name: string;
   role: string;
   initials: string;
@@ -50,6 +56,15 @@ type Post = {
   likes: number;
   comments: number;
   featured?: boolean;
+  imageData?: string;
+};
+
+type ApiPost = {
+  _id: string;
+  text: string;
+  imageData?: string;
+  createdAt: string;
+  author: { _id: string; name: string; role: string };
 };
 
 const fallbackJobs: Job[] = [
@@ -86,39 +101,45 @@ const fallbackJobs: Job[] = [
   },
 ];
 
-const initialPosts: Post[] = [
-  {
-    id: 1,
-    name: "Priya Sharma",
-    role: "Product designer · Bengaluru",
-    initials: "PS",
-    tone: "rose",
-    time: "2h",
-    text: "A good portfolio doesn’t show everything you’ve done. It shows how you think, what you learned, and the difference your work made. I rebuilt mine around the decisions behind the pixels — and it finally feels like me.",
-    tags: ["Design careers", "Portfolio tips"],
-    likes: 128,
-    comments: 18,
-    featured: true,
-  },
-  {
-    id: 2,
-    name: "Arjun Mehta",
-    role: "Engineering manager · Remote",
-    initials: "AM",
-    tone: "blue",
-    time: "5h",
-    text: "We’re opening a few spots on our platform team this month. Looking for curious engineers who care about the small details and enjoy making systems feel simple.",
-    tags: ["Engineering", "Hiring"],
-    likes: 84,
-    comments: 12,
-  },
-];
-
 const suggestedPeople = [
   { name: "Rhea Desai", role: "Design lead at Paperplane", initials: "RD", tone: "gold" },
   { name: "Kabir Nair", role: "People partner at Northstar", initials: "KN", tone: "mint" },
   { name: "Simran Iyer", role: "Product manager · SaaS", initials: "SI", tone: "lilac" },
 ];
+
+function initialsFor(name: string): string {
+  return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("");
+}
+
+function toneFor(name: string): string {
+  return ["lilac", "rose", "blue", "gold", "mint"][name.charCodeAt(0) % 5] ?? "lilac";
+}
+
+function timeSince(date: string): string {
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / 60_000));
+  if (minutes < 1) return "now";
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
+function fromApiPost(post: ApiPost): Post {
+  return {
+    id: post._id,
+    authorId: post.author._id,
+    name: post.author.name,
+    role: post.author.role[0]?.toUpperCase() + post.author.role.slice(1),
+    initials: initialsFor(post.author.name),
+    tone: toneFor(post.author.name),
+    time: timeSince(post.createdAt),
+    text: post.text,
+    tags: [],
+    likes: 0,
+    comments: 0,
+    imageData: post.imageData,
+  };
+}
 
 const navItems = [
   { label: "Your feed", icon: Compass, href: "#feed" },
@@ -128,14 +149,25 @@ const navItems = [
 
 export default function HomePage() {
   const [jobs, setJobs] = useState<Job[]>(fallbackJobs);
-  const [posts, setPosts] = useState(initialPosts);
-  const [likedPosts, setLikedPosts] = useState<number[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [likedPosts, setLikedPosts] = useState<string[]>([]);
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [followedPeople, setFollowedPeople] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [composerOpen, setComposerOpen] = useState(false);
+  const [imageData, setImageData] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [postError, setPostError] = useState("");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const currentUser = getCurrentUser();
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
+  const navigate = useNavigate();
+
+  const displayName = currentUser?.name ?? "Hirevo member";
+  const avatarInitials = initialsFor(displayName) || "HM";
+  const avatarTone = toneFor(displayName);
 
   useEffect(() => {
     const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
@@ -146,6 +178,14 @@ export default function HomePage() {
         if (data.jobs?.length) setJobs(data.jobs);
       })
       .catch(() => undefined);
+    apiRequest<{ posts: ApiPost[] }>("/api/posts", { signal: controller.signal })
+      .then((data) => setPosts(data.posts.map(fromApiPost)))
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) setPostError(error instanceof Error ? error.message : "Could not load posts.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoadingPosts(false);
+      });
     return () => controller.abort();
   }, []);
 
@@ -157,7 +197,7 @@ export default function HomePage() {
     );
   }, [jobs, query]);
 
-  const toggleLike = (id: number) => {
+  const toggleLike = (id: string) => {
     setLikedPosts((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   };
 
@@ -165,28 +205,76 @@ export default function HomePage() {
     setSavedJobs((current) => current.includes(title) ? current.filter((item) => item !== title) : [...current, title]);
   };
 
-  const publishPost = () => {
+  const publishPost = async () => {
     const text = draft.trim();
-    if (!text) return;
-    setPosts((current) => [{
-      id: Date.now(),
-      name: "Maya Patel",
-      role: "Product designer · Mumbai",
-      initials: "MP",
-      tone: "lilac",
-      time: "now",
-      text,
-      tags: ["Your update"],
-      likes: 0,
-      comments: 0,
-    }, ...current]);
-    setDraft("");
-    setComposerOpen(false);
-    setNotice("Your update is now in the feed.");
-    window.setTimeout(() => setNotice(""), 2800);
+    if (!text || isPublishing) return;
+    setIsPublishing(true);
+    setPostError("");
+    try {
+      const result = await apiRequest<{ post: ApiPost }>("/api/posts", {
+        method: "POST",
+        body: JSON.stringify({ text, ...(imageData ? { imageData } : {}) }),
+      });
+      setPosts((current) => [fromApiPost(result.post), ...current]);
+      setDraft("");
+      setImageData("");
+      setComposerOpen(false);
+      setNotice("Your post has been shared.");
+      window.setTimeout(() => setNotice(""), 2800);
+    } catch (error) {
+      setPostError(error instanceof Error ? error.message : "Your post could not be shared.");
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
-  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/") || !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+      setPostError("Choose a JPG, PNG, WebP, or GIF image.");
+      return;
+    }
+    if (file.size > 768 * 1024) {
+      setPostError("Images must be 768 KB or smaller.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setImageData(reader.result);
+        setPostError("");
+        setComposerOpen(true);
+      }
+    };
+    reader.onerror = () => setPostError("That image could not be opened. Try another file.");
+    reader.readAsDataURL(file);
+  };
+
+  const deletePost = async (post: Post) => {
+    try {
+      await apiRequest<void>(`/api/posts/${post.id}`, { method: "DELETE" });
+      setPosts((current) => current.filter((item) => item.id !== post.id));
+      setPendingDeleteId(null);
+      setNotice("Your post has been deleted.");
+      window.setTimeout(() => setNotice(""), 2800);
+    } catch (error) {
+      setPostError(error instanceof Error ? error.message : "That post could not be deleted.");
+      setPendingDeleteId(null);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch {
+      // The local session is cleared by signOut even when the API is unavailable.
+    }
+    navigate("/login", { replace: true });
+  };
+
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     document.querySelector("#opportunities")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -221,8 +309,8 @@ export default function HomePage() {
             <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setNotice("You’re all caught up.")}>
               <Bell size={19} /><span className="notification-dot" />
             </button>
-            <button className="top-avatar avatar avatar-lilac" aria-label="Open profile">MP</button>
-            <Link className="login-link" to="/login">Sign in</Link>
+            <button className={`top-avatar avatar avatar-${avatarTone}`} aria-label={`Signed in as ${displayName}`}>{avatarInitials}</button>
+            <button aria-label="Sign out" className="login-link" onClick={() => void handleSignOut()}><LogOut size={14} /> Sign out</button>
           </div>
         </div>
       </header>
@@ -234,10 +322,11 @@ export default function HomePage() {
           <section className="surface profile-card" id="profile">
             <div className="profile-cover"><span className="cover-orb cover-orb-one" /><span className="cover-orb cover-orb-two" /><span className="cover-spark">✳</span></div>
             <div className="profile-content">
-              <div className="avatar profile-avatar avatar-lilac">MP</div>
-              <div className="profile-heading"><h2>Maya Patel</h2><span className="verified-mark"><Check size={11} /></span></div>
-              <p>Product designer building calmer digital experiences.</p>
-              <div className="profile-location"><MapPin size={14} /> Mumbai, India</div>
+              <div className={`avatar profile-avatar avatar-${avatarTone}`}>{avatarInitials}</div>
+              <div className="profile-heading"><h2>{displayName}</h2><span className="verified-mark"><Check size={11} /></span></div>
+              <span className="profile-username">@{currentUser?.username}</span>
+              <p>{currentUser?.role === "recruiter" ? "Connecting thoughtful teams with great people." : "Building your next chapter, one connection at a time."}</p>
+              <div className="profile-location"><MapPin size={14} /> Hirevo community</div>
               <div className="profile-divider" />
               <a className="profile-stat" href="#community"><span>Profile views</span><strong>248 <ArrowDownRight size={14} /></strong></a>
               <a className="profile-stat" href="#opportunities"><span>Applications</span><strong>12 <ChevronRight size={14} /></strong></a>
@@ -281,8 +370,10 @@ export default function HomePage() {
           </section>
 
           <section className="composer surface" id="composer">
-            <div className="composer-top"><div className="avatar avatar-lilac">MP</div>{composerOpen ? <textarea autoFocus aria-label="Write an update" onChange={(event) => setDraft(event.target.value)} placeholder="What’s on your mind, Maya? Share a win, an idea, or a question..." value={draft} /> : <button className="composer-placeholder" onClick={() => setComposerOpen(true)}>What’s on your mind, Maya?</button>}</div>
-            <div className="composer-bottom"><div><span className="composer-audience"><Users size={14} /> Your community <ChevronDown size={13} /></span><span className="composer-hint">A thoughtful update can start something.</span></div><button className="publish-button" disabled={!composerOpen || !draft.trim()} onClick={publishPost}><Send size={14} /> Share update</button></div>
+            <div className="composer-top"><div className={`avatar avatar-${avatarTone}`}>{avatarInitials}</div>{composerOpen ? <textarea autoFocus aria-label="Write a post" maxLength={2000} onChange={(event) => setDraft(event.target.value)} placeholder={`What’s on your mind, ${displayName.split(" ")[0]}? Share a win, an idea, or a question...`} value={draft} /> : <button className="composer-placeholder" onClick={() => setComposerOpen(true)}>What’s on your mind, {displayName.split(" ")[0]}?</button>}</div>
+            {imageData && <div className="composer-image-preview"><img alt="Selected post attachment preview" src={imageData} /><button aria-label="Remove selected image" onClick={() => setImageData("")}><X size={15} /></button></div>}
+            {postError && <p className="post-error" role="alert">{postError}</p>}
+            <div className="composer-bottom"><div><span className="composer-audience"><Users size={14} /> Your community <ChevronDown size={13} /></span><span className="composer-hint">A thoughtful update can start something.</span></div><div className="composer-tools"><label className="attach-image-button" title="Add a photo"><ImagePlus size={16} /><span>Photo</span><input accept="image/jpeg,image/png,image/webp,image/gif" aria-label="Attach a photo" onChange={handleImageSelect} type="file" /></label><button className="publish-button" disabled={!composerOpen || !draft.trim() || isPublishing} onClick={() => void publishPost()}>{isPublishing ? <LoaderCircle className="spinning" size={14} /> : <Send size={14} />}{isPublishing ? "Sharing…" : "Share post"}</button></div></div>
           </section>
 
           <section className="feed-section" aria-labelledby="feed-heading">
@@ -300,16 +391,23 @@ export default function HomePage() {
             </div>
 
             <div className="post-list">
-              {posts.map((post, index) => <article className={`surface post-card ${post.featured ? "post-featured" : ""}`} key={post.id}>
-                <div className="post-top"><div className={`avatar avatar-${post.tone}`}>{post.initials}</div><div className="post-author"><div><strong>{post.name}</strong>{index === 0 && post.id === 1 && <span className="author-verified"><Check size={10} /></span>}<span className="post-time">· {post.time}</span></div><p>{post.role}</p></div><button className="post-more" aria-label={`More options for ${post.name}'s post`} onClick={() => setNotice("More post options will be available soon.")}><MoreHorizontal size={20} /></button></div>
-                <p className="post-copy">{post.text}</p>
-                {post.featured && <div className="post-visual"><div className="post-visual-orbit orbit-one" /><div className="post-visual-orbit orbit-two" /><span className="visual-label">THE WORK BEHIND THE WORK</span><strong>Make it<br /><em>mean something.</em></strong><span className="visual-signature">Notes from the studio <ArrowRight size={14} /></span><span className="visual-sticker">✳</span></div>}
-                <div className="post-tags">{post.tags.map((tag) => <a href="#community" key={tag}>#{tag.replaceAll(" ", "")}</a>)}</div>
-                <div className="post-metrics"><span>{post.likes + (likedPosts.includes(post.id) ? 1 : 0)} appreciations</span><span>{post.comments} comments</span></div>
-                <div className="post-actions"><button className={likedPosts.includes(post.id) ? "is-liked" : ""} onClick={() => toggleLike(post.id)}><Heart size={17} fill={likedPosts.includes(post.id) ? "currentColor" : "none"} /> Appreciate</button><button onClick={() => setNotice("Comments are ready to connect to the community API.")}><MessageCircle size={17} /> Comment</button><button onClick={() => setNotice("Share link copied to your clipboard.")}><Send size={16} /> Share</button><button className="post-bookmark" aria-label="Save post" onClick={() => setNotice("Post saved to your collection.")}><Bookmark size={17} /></button></div>
-              </article>)}
+              {isLoadingPosts && <div className="post-state surface"><LoaderCircle className="spinning" size={18} /> Loading your community…</div>}
+              {!isLoadingPosts && posts.length === 0 && <div className="post-state surface"><Sparkles size={18} /><strong>Your feed starts here</strong><span>Share a thought or a photo with your community.</span></div>}
+              {posts.map((post) => {
+                const canDelete = post.authorId === currentUser?.id || currentUser?.role === "admin";
+                return <article className="surface post-card" key={post.id}>
+                  <div className="post-top"><div className={`avatar avatar-${post.tone}`}>{post.initials}</div><div className="post-author"><div><strong>{post.name}</strong><span className="post-time">· {post.time}</span></div><p>{post.role}</p></div>{canDelete ? <button className="post-delete-trigger" aria-label={`Delete your post from ${post.time}`} disabled={pendingDeleteId === post.id} onClick={() => setPendingDeleteId(post.id)}><Trash2 size={16} /> <span>Delete</span></button> : <button className="post-more" aria-label={`More options for ${post.name}'s post`} onClick={() => setNotice("More post options will be available soon.")}><MoreHorizontal size={20} /></button>}</div>
+                  {pendingDeleteId === post.id && <div className="delete-confirm" role="group" aria-label="Confirm post deletion"><span>Delete this post? This can’t be undone.</span><button onClick={() => setPendingDeleteId(null)}>Keep post</button><button className="confirm-delete" onClick={() => void deletePost(post)}>Delete</button></div>}
+                  <p className="post-copy">{post.text}</p>
+                  {post.imageData && <img className="post-attachment" src={post.imageData} alt={`Photo shared by ${post.name}`} />}
+                  {post.featured && <div className="post-visual"><div className="post-visual-orbit orbit-one" /><div className="post-visual-orbit orbit-two" /><span className="visual-label">THE WORK BEHIND THE WORK</span><strong>Make it<br /><em>mean something.</em></strong><span className="visual-signature">Notes from the studio <ArrowRight size={14} /></span><span className="visual-sticker">✳</span></div>}
+                  {post.tags.length > 0 && <div className="post-tags">{post.tags.map((tag) => <a href="#community" key={tag}>#{tag.replaceAll(" ", "")}</a>)}</div>}
+                  <div className="post-metrics"><span>{post.likes + (likedPosts.includes(post.id) ? 1 : 0)} appreciations</span><span>{post.comments} comments</span></div>
+                  <div className="post-actions"><button className={likedPosts.includes(post.id) ? "is-liked" : ""} onClick={() => toggleLike(post.id)}><Heart size={17} fill={likedPosts.includes(post.id) ? "currentColor" : "none"} /> Appreciate</button><button onClick={() => setNotice("Comments are coming soon.")}><MessageCircle size={17} /> Comment</button><button onClick={() => setNotice("Share link copied to your clipboard.")}><Send size={16} /> Share</button><button className="post-bookmark" aria-label="Save post" onClick={() => setNotice("Post saved to your collection.")}><Bookmark size={17} /></button></div>
+                </article>;
+              })}
             </div>
-            <button className="load-more" onClick={() => setNotice("You’re all caught up for now.")}>You’re all caught up <Sparkles size={14} /></button>
+            {!isLoadingPosts && posts.length > 0 && <button className="load-more" onClick={() => setNotice("You’re all caught up for now.")}>You’re all caught up <Sparkles size={14} /></button>}
           </section>
         </section>
 
@@ -342,7 +440,7 @@ export default function HomePage() {
           <div className="right-footer"><a href="#about">About</a><a href="#help">Help</a><a href="#terms">Terms</a><span>Built for what’s next <span aria-hidden="true">✳</span></span></div>
         </aside>
       </main>
-      <nav className="mobile-bottom-nav" aria-label="Mobile navigation"><a className="mobile-nav-current" href="#feed"><Compass size={20} /><span>Home</span></a><a href="#opportunities"><BriefcaseBusiness size={20} /><span>Jobs</span></a><a href="#community"><Users size={20} /><span>People</span></a><a href="#profile"><span className="avatar avatar-lilac">MP</span><span>Profile</span></a></nav>
+      <nav className="mobile-bottom-nav" aria-label="Mobile navigation"><a className="mobile-nav-current" href="#feed"><Compass size={20} /><span>Home</span></a><a href="#opportunities"><BriefcaseBusiness size={20} /><span>Jobs</span></a><a href="#community"><Users size={20} /><span>People</span></a><a href="#profile"><span className={`avatar avatar-${avatarTone}`}>{avatarInitials}</span><span>Profile</span></a></nav>
     </div>
   );
 }
