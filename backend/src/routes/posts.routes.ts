@@ -21,6 +21,15 @@ postsRouter.get("/", asyncHandler(async (_request, response) => {
   response.json({ posts });
 }));
 
+postsRouter.get("/mine", asyncHandler(async (request, response) => {
+  const posts = await Post.find({ author: request.auth!.userId })
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .populate("author", "name role")
+    .lean();
+  response.json({ posts });
+}));
+
 postsRouter.post("/", asyncHandler(async (request, response) => {
   const input = postSchema.parse(request.body);
   const post = await Post.create({ ...input, author: request.auth!.userId });

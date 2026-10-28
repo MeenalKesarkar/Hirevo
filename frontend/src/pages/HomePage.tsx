@@ -28,7 +28,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { apiRequest, getCurrentUser, signOut } from "../services/api";
 import "./HomePage.css";
 
@@ -282,13 +282,18 @@ export default function HomePage() {
     document.querySelector("#opportunities")?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const navigateToSection = (section: "feed" | "community" | "opportunities", active: "home" | "people" | "jobs") => {
+    setActiveNav(active);
+    document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className="home-shell">
       <header className="home-topbar">
         <div className="topbar-inner">
           <a className="brand-lockup" href="#feed" aria-label="Hirevo home">
             <span className="brand-mark" aria-hidden="true"><i /><i /></span>
-            <span>hirevo<span className="brand-period">.</span></span>
+            <span>Hirevo<span className="brand-period">.</span></span>
           </a>
 
           <form className="global-search" onSubmit={handleSearch} role="search">
@@ -306,14 +311,14 @@ export default function HomePage() {
             <a aria-current={activeNav === "home" ? "page" : undefined} className={`top-link ${activeNav === "home" ? "top-link-active" : ""}`} href="#feed" onClick={() => setActiveNav("home")}><House size={19} /><span>Home</span></a>
             <a aria-current={activeNav === "people" ? "page" : undefined} className={`top-link ${activeNav === "people" ? "top-link-active" : ""}`} href="#community" onClick={() => setActiveNav("people")}><Users size={19} /><span>People</span></a>
             <a aria-current={activeNav === "jobs" ? "page" : undefined} className={`top-link ${activeNav === "jobs" ? "top-link-active" : ""}`} href="#opportunities" onClick={() => setActiveNav("jobs")}><BriefcaseBusiness size={19} /><span>Jobs</span></a>
-            <a aria-current={activeNav === "profile" ? "page" : undefined} className={`top-link ${activeNav === "profile" ? "top-link-active" : ""}`} href="#profile" onClick={() => setActiveNav("profile")}><UserRound size={19} /><span>Profile</span></a>
+            <Link aria-current={activeNav === "profile" ? "page" : undefined} className={`top-link ${activeNav === "profile" ? "top-link-active" : ""}`} to="/profile"><UserRound size={19} /><span>Profile</span></Link>
           </nav>
 
           <div className="topbar-actions">
             <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setNotice("You’re all caught up.")}>
               <Bell size={19} /><span className="notification-dot" />
             </button>
-            <button className={`top-avatar avatar avatar-${avatarTone}`} aria-label={`Signed in as ${displayName}`}>{avatarInitials}</button>
+            <button className={`top-avatar avatar avatar-${avatarTone}`} aria-label={`View ${displayName}'s profile`} onClick={() => navigate("/profile")}>{avatarInitials}</button>
             <button aria-label="Sign out" className="login-link" onClick={() => void handleSignOut()}><LogOut size={14} /> Sign out</button>
           </div>
         </div>
@@ -426,10 +431,10 @@ export default function HomePage() {
         </aside>
       </main>
       <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-        <a aria-current={activeNav === "home" ? "page" : undefined} className={activeNav === "home" ? "mobile-nav-current" : ""} href="#feed" onClick={() => setActiveNav("home")}><House size={20} /><span>Home</span></a>
-        <a aria-current={activeNav === "people" ? "page" : undefined} className={activeNav === "people" ? "mobile-nav-current" : ""} href="#community" onClick={() => setActiveNav("people")}><Users size={20} /><span>People</span></a>
-        <a aria-current={activeNav === "jobs" ? "page" : undefined} className={activeNav === "jobs" ? "mobile-nav-current" : ""} href="#opportunities" onClick={() => setActiveNav("jobs")}><BriefcaseBusiness size={20} /><span>Jobs</span></a>
-        <a aria-current={activeNav === "profile" ? "page" : undefined} className={activeNav === "profile" ? "mobile-nav-current" : ""} href="#profile" onClick={() => setActiveNav("profile")}><UserRound size={20} /><span>Profile</span></a>
+        <button aria-current={activeNav === "home" ? "page" : undefined} className={activeNav === "home" ? "mobile-nav-current" : ""} onClick={() => navigateToSection("feed", "home")} type="button"><House size={20} /><span>Home</span></button>
+        <button aria-current={activeNav === "people" ? "page" : undefined} className={activeNav === "people" ? "mobile-nav-current" : ""} onClick={() => navigateToSection("community", "people")} type="button"><Users size={20} /><span>People</span></button>
+        <button aria-current={activeNav === "jobs" ? "page" : undefined} className={activeNav === "jobs" ? "mobile-nav-current" : ""} onClick={() => navigateToSection("opportunities", "jobs")} type="button"><BriefcaseBusiness size={20} /><span>Jobs</span></button>
+        <button aria-current={activeNav === "profile" ? "page" : undefined} className={activeNav === "profile" ? "mobile-nav-current" : ""} onClick={() => navigate("/profile")} type="button"><UserRound size={20} /><span>Profile</span></button>
       </nav>
     </div>
   );

@@ -24,6 +24,29 @@ const credentialsSchema = z.object({
   password: z.string().min(1).max(72),
 });
 const googleCredentialSchema = z.object({ credential: z.string().min(1).max(20_000) });
+const profileSchema = z.object({
+  headline: z.string().trim().max(140).optional(),
+  location: z.string().trim().max(120).optional(),
+  about: z.string().trim().max(2_000).optional(),
+  skills: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
+  education: z.array(z.object({
+    institution: z.string().trim().min(1).max(140),
+    degree: z.string().trim().min(1).max(120),
+    fieldOfStudy: z.string().trim().max(120).optional(),
+    startYear: z.string().trim().max(20).optional(),
+    endYear: z.string().trim().max(20).optional(),
+  }).strict()).max(10).optional(),
+  experience: z.array(z.object({
+    title: z.string().trim().min(1).max(120),
+    company: z.string().trim().min(1).max(140),
+    location: z.string().trim().max(120).optional(),
+    startYear: z.string().trim().max(20).optional(),
+    endYear: z.string().trim().max(20).optional(),
+    description: z.string().trim().max(1_000).optional(),
+  }).strict()).max(10).optional(),
+  profileImageData: z.string().max(1_100_000).refine((value) => value === "" || /^data:image\/(?:png|jpe?g|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value), "Profile photo must be a JPG, PNG, or WebP image.").optional(),
+  coverImageData: z.string().max(1_100_000).refine((value) => value === "" || /^data:image\/(?:png|jpe?g|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value), "Cover image must be a JPG, PNG, or WebP image.").optional(),
+}).strict().refine((value) => Object.keys(value).length > 0, "Add at least one profile field to update.");
 
 function setRefreshCookie(response: Response, token: string): void {
   response.cookie(REFRESH_COOKIE, token, {
@@ -161,11 +184,33 @@ authRouter.post("/logout", asyncHandler(async (request, response) => {
 }));
 
 authRouter.get("/me", requireAuth, asyncHandler(async (request, response) => {
-  const user = await User.findById(request.auth?.userId).select("name email role createdAt");
+  const user = await User.findById(request.auth?.userId).select("name email role createdAt headline location about skills education experience profileImageData coverImageData");
   if (!user) {
     response.status(404).json({ error: "Account not found." });
     return;
   }
   response.json({ user });
+}));
+
+authRouter.patch("/me", requireAuth, asyncHandler(async (request, response) => {
+  const input = profileSchema.parse(request.body);
+  const user = await User.findByIdAndUpdate(request.auth?.userId, { $set: input }, {
+    new: true,
+    runValidators: true,
+  }).select("name email role createdAt headline location about skills education experience profileImageData coverImageData");
+  if (!user) {
+    response.status(404).json({ error: "Account not found." });
+    return;
+  }
+  response.json({ user });
+}));
+
+authRouter.get("/people", requireAuth, asyncHandler(async (request, response) => {
+  const people = await User.find({ _id: { $ne: request.auth?.userId } })
+    .select("name role headline location skills createdAt")
+    .sort({ createdAt: -1 })
+    .limit(6)
+    .lean();
+  response.json({ people });
 }));
 
