@@ -14,15 +14,13 @@ import { hashToken, issueTokenPair, REFRESH_COOKIE, REFRESH_MAX_AGE_MS } from ".
 export const authRouter = Router();
 const registerSchema = z.object({
   name: z.string().trim().min(2).max(100),
-  username: z.string().trim().toLowerCase().min(3).max(30).regex(/^[a-z0-9._-]+$/),
   email: z.email().transform((email) => email.toLowerCase()),
   password: z.string().min(8).max(72),
 });
 const credentialsSchema = z.object({
-  identifier: z.string().trim().min(1).max(320).optional(),
-  email: z.email().transform((email) => email.toLowerCase()).optional(),
+  email: z.email().transform((email) => email.toLowerCase()),
   password: z.string().min(1).max(72),
-}).refine((input) => Boolean(input.identifier || input.email), { message: "Username or email is required." });
+});
 
 function setRefreshCookie(response: Response, token: string): void {
   response.cookie(REFRESH_COOKIE, token, {
@@ -38,26 +36,22 @@ authRouter.post("/register", asyncHandler(async (request, response) => {
   const input = registerSchema.parse(request.body);
   const passwordHash = await bcrypt.hash(input.password, 12);
   const user = await User.create({ ...input, passwordHash });
-  const tokens = await issueTokenPair(user);
-  setRefreshCookie(response, tokens.refreshToken);
   response.status(201).json({
-    user: { id: user.id, name: user.name, username: user.username, email: user.email, role: user.role },
-    accessToken: tokens.accessToken,
+    user: { id: user.id, name: user.name, email: user.email, role: user.role },
   });
 }));
 
 authRouter.post("/login", asyncHandler(async (request, response) => {
   const input = credentialsSchema.parse(request.body);
-  const identifier = (input.identifier ?? input.email ?? "").trim().toLowerCase();
-  const user = await User.findOne(identifier.includes("@") ? { email: identifier } : { username: identifier }).select("+passwordHash");
+  const user = await User.findOne({ email: input.email }).select("+passwordHash");
   if (!user || !(await bcrypt.compare(input.password, user.passwordHash))) {
-    response.status(401).json({ error: "Username, email, or password is incorrect." });
+    response.status(401).json({ error: "Email or password is incorrect." });
     return;
   }
   const tokens = await issueTokenPair(user);
   setRefreshCookie(response, tokens.refreshToken);
   response.json({
-    user: { id: user.id, name: user.name, username: user.username, email: user.email, role: user.role },
+    user: { id: user.id, name: user.name, email: user.email, role: user.role },
     accessToken: tokens.accessToken,
   });
 }));
@@ -111,7 +105,7 @@ authRouter.post("/logout", asyncHandler(async (request, response) => {
 }));
 
 authRouter.get("/me", requireAuth, asyncHandler(async (request, response) => {
-  const user = await User.findById(request.auth?.userId).select("name username email role createdAt");
+  const user = await User.findById(request.auth?.userId).select("name email role createdAt");
   if (!user) {
     response.status(404).json({ error: "Account not found." });
     return;

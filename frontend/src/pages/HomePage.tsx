@@ -324,7 +324,6 @@ export default function HomePage() {
             <div className="profile-content">
               <div className={`avatar profile-avatar avatar-${avatarTone}`}>{avatarInitials}</div>
               <div className="profile-heading"><h2>{displayName}</h2><span className="verified-mark"><Check size={11} /></span></div>
-              <span className="profile-username">@{currentUser?.username}</span>
               <p>{currentUser?.role === "recruiter" ? "Connecting thoughtful teams with great people." : "Building your next chapter, one connection at a time."}</p>
               <div className="profile-location"><MapPin size={14} /> Hirevo community</div>
               <div className="profile-divider" />

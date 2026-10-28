@@ -1,7 +1,6 @@
 export type HirevoUser = {
   id: string;
   name: string;
-  username: string;
   email: string;
   role: "candidate" | "recruiter" | "admin";
 };
@@ -61,12 +60,12 @@ export function subscribeToAuthChanges(callback: () => void): () => void {
   };
 }
 
-export async function signIn(identifier: string, password: string, rememberMe: boolean): Promise<void> {
+export async function signIn(email: string, password: string, rememberMe: boolean): Promise<void> {
   const response = await fetch(`${API_BASE}/api/auth/login`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ identifier, password }),
+    body: JSON.stringify({ email, password }),
   });
   const payload = await response.json().catch(() => ({})) as {
     error?: string;
@@ -77,6 +76,23 @@ export async function signIn(identifier: string, password: string, rememberMe: b
     throw new Error(payload.error ?? "Sign in failed. Please check your details and try again.");
   }
   storeSession(payload.accessToken, payload.user, rememberMe);
+}
+
+export async function signUp(input: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<void> {
+  const response = await fetch(`${API_BASE}/api/auth/register`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json().catch(() => ({})) as { error?: string };
+  if (!response.ok) {
+    throw new Error(payload.error ?? "Could not create your account. Please try again.");
+  }
 }
 
 async function renewAccessToken(): Promise<boolean> {

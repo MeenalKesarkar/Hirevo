@@ -6,12 +6,13 @@ TypeScript + Express API with MongoDB Atlas, email/password authentication, rota
 
 1. Open a terminal in `backend` and run `npm install`.
 2. Copy `.env.example` to `.env` and set `MONGODB_URI` to the Atlas URI. Keep this file local and never commit it.
-3. Set different random values for `ACCESS_TOKEN_SECRET` and `REFRESH_TOKEN_SECRET` (at least 32 characters each).
-4. Set all seven `DEMO_PASSWORD_*` values in your local `.env`. These are for demo accounts only.
+3. If Node reports `querySrv ECONNREFUSED`, set `MONGODB_DNS_SERVERS=8.8.8.8,1.1.1.1` in `.env` to use public DNS resolvers for Atlas SRV records.
+4. Set different random values for `ACCESS_TOKEN_SECRET` and `REFRESH_TOKEN_SECRET` (at least 32 characters each).
 5. In Atlas, allow the development machine's IP address under **Network Access**.
 6. Run `npm run dev` to start the API at `http://localhost:4000`.
 7. Run `npm run seed` to add three fictional demo jobs. Running the seed command again does not duplicate them.
-8. Run `npm run seed:users` to create or refresh six demo candidate accounts and one recruiter account. They can sign in with username or email. This command resets their passwords from local `.env` each time.
+8. Run `npm run seed:users` to create or refresh six demo candidate accounts and one recruiter account. They sign in with email. Each demo password is generated from the account name plus `123` and is bcrypt-hashed before it is saved to MongoDB.
+9. Run `npm run users:remove-usernames` once to remove legacy username fields and their index from existing Atlas user records.
 
 The API selects the `hirevo` database from the URI. MongoDB creates it when data is first written.
 

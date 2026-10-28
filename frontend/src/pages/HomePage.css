@@ -62,7 +62,6 @@
 .profile-avatar { width: 56px; height: 56px; margin-top: -27px; border: 3px solid #fff; position: relative; z-index: 2; font-size: 14px; }
 .profile-heading { display: flex; align-items: center; gap: 6px; margin-top: 9px; }
 .profile-heading h2 { margin: 0; font-size: 15px; letter-spacing: -.3px; }
-.profile-username { display: block; margin-top: 2px; color: #91899e; font-size: 10px; }
 .verified-mark, .author-verified { display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; color: #fff; background: #8872c9; }
 .profile-content > p { max-width: 195px; margin: 5px 0 10px; color: #756e83; font-size: 11px; line-height: 1.5; }
 .profile-location { display: flex; align-items: center; gap: 5px; color: #938da0; font-size: 10px; }

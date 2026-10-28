@@ -9,9 +9,6 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  if (!splashComplete) {
-    return <SplashScreen />;
-  }
-
+  if (!splashComplete) return <SplashScreen />;
   return <Outlet />;
 }

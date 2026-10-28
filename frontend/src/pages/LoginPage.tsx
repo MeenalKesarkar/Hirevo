@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Eye, EyeOff, MoveRight } from "lucide-react";
-import { useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { signIn } from "../services/api";
 
 export default function LoginPage() {
@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const routeState = location.state as { from?: { pathname?: string }; signupSuccess?: boolean; signupEmail?: string } | null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -17,8 +18,8 @@ export default function LoginPage() {
     setIsSubmitting(true);
     const form = new FormData(event.currentTarget);
     try {
-      await signIn(String(form.get("identifier") ?? ""), String(form.get("password") ?? ""), rememberMe);
-      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+      await signIn(String(form.get("email") ?? ""), String(form.get("password") ?? ""), rememberMe);
+      const from = routeState?.from?.pathname;
       navigate(from && from !== "/login" ? from : "/", { replace: true });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not sign in. Please try again.");
@@ -47,14 +48,15 @@ export default function LoginPage() {
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-lav-900">Username or email</span>
+            <span className="mb-2 block text-sm font-semibold text-lav-900">Email address</span>
             <input
-              autoComplete="username"
+              autoComplete="email"
               className="w-full rounded-xl border border-[#D7CDED] bg-white/90 px-4 py-3.5 text-[15px] text-lav-900 outline-none transition placeholder:text-[#978DAF] focus:border-lav-500 focus:ring-4 focus:ring-lav-200/50"
-              name="identifier"
-              placeholder="your username or email"
+              name="email"
+              defaultValue={routeState?.signupEmail ?? ""}
+              placeholder="you@example.com"
               required
-              type="text"
+              type="email"
             />
           </label>
 
@@ -116,6 +118,10 @@ export default function LoginPage() {
             <GoogleMark />
             Sign in with Google
           </button>
+          <p className="text-center text-sm text-lav-700">
+            New to Hirevo? <Link className="font-semibold text-lav-500 hover:text-lav-900" state={{ enterSignup: true }} to="/signup">Create an account</Link>
+          </p>
+          {routeState?.signupSuccess && <p aria-live="polite" className="text-center text-xs font-medium text-emerald-700">Your account is ready. Sign in to continue.</p>}
           {status && <p aria-live="polite" className="text-center text-xs text-lav-700">{status}</p>}
         </form>
       </section>
