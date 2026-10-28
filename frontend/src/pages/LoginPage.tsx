@@ -1,16 +1,100 @@
-import { useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Eye, EyeOff, MoveRight } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { signIn } from "../services/api";
+import { signIn, signInWithGoogle } from "../services/api";
+
+type GoogleIdentityApi = {
+  accounts: {
+    id: {
+      initialize: (options: { client_id: string; callback: (response: { credential?: string }) => void }) => void;
+      renderButton: (container: HTMLElement, options: {
+        type: "standard";
+        theme: "outline";
+        size: "large";
+        text: "signin_with";
+        shape: "rectangular";
+        logo_alignment: "left";
+        width: number;
+      }) => void;
+    };
+  };
+};
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const routeState = location.state as { from?: { pathname?: string }; signupSuccess?: boolean; signupEmail?: string } | null;
+  const routeState = location.state as { from?: { pathname?: string }; signupSuccess?: boolean; signupEmail?: string; signedOut?: boolean } | null;
+  const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "").trim();
+
+  const handleGoogleCredential = useCallback(async (credential: string) => {
+    setStatus("");
+    setIsSubmitting(true);
+    try {
+      await signInWithGoogle(credential, rememberMe);
+      const from = routeState?.from?.pathname;
+      navigate(from && from !== "/login" ? from : "/", { replace: true });
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Google sign-in failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [navigate, rememberMe, routeState]);
+
+  useEffect(() => {
+    const container = googleButtonRef.current;
+    if (!googleClientId || !container) return;
+    let disposed = false;
+    const scriptId = "hirevo-google-identity-services";
+
+    const renderGoogleButton = () => {
+      const google = (window as Window & { google?: GoogleIdentityApi }).google;
+      const target = googleButtonRef.current;
+      if (disposed || !google || !target) return;
+      target.replaceChildren();
+      google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: (response) => {
+          if (response.credential) void handleGoogleCredential(response.credential);
+          else setStatus("Google did not return a sign-in credential. Please try again.");
+        },
+      });
+      google.accounts.id.renderButton(target, {
+        type: "standard",
+        theme: "outline",
+        size: "large",
+        text: "signin_with",
+        shape: "rectangular",
+        logo_alignment: "left",
+        width: Math.min(target.clientWidth || 360, 400),
+      });
+    };
+
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
+    if ((window as Window & { google?: GoogleIdentityApi }).google) {
+      renderGoogleButton();
+    } else if (script) {
+      script.addEventListener("load", renderGoogleButton);
+    } else {
+      script = document.createElement("script");
+      script.id = scriptId;
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.addEventListener("load", renderGoogleButton);
+      script.addEventListener("error", () => setStatus("Google sign-in could not load. Check your internet connection."), { once: true });
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      disposed = true;
+      script?.removeEventListener("load", renderGoogleButton);
+    };
+  }, [googleClientId, handleGoogleCredential]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -110,18 +194,23 @@ export default function LoginPage() {
             <span className="h-px flex-1 bg-[#DCD3F8]" />
           </div>
 
-          <button
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#D7CDED] bg-white/85 px-5 py-3.5 text-sm font-semibold text-lav-900 transition hover:border-lav-500 hover:bg-white focus:outline-none focus:ring-4 focus:ring-lav-200/50"
-            onClick={() => setStatus("Google sign-in will be available once authentication is configured.")}
-            type="button"
-          >
-            <GoogleMark />
-            Sign in with Google
-          </button>
+          {googleClientId ? (
+            <div aria-label="Sign in with Google" className="flex min-h-[42px] justify-center" ref={googleButtonRef} />
+          ) : (
+            <button
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#D7CDED] bg-white/85 px-5 py-3.5 text-sm font-semibold text-lav-900 transition hover:border-lav-500 hover:bg-white focus:outline-none focus:ring-4 focus:ring-lav-200/50"
+              onClick={() => setStatus("Google sign-in needs the same OAuth Web client ID in frontend/.env.local and backend/.env.")}
+              type="button"
+            >
+              <GoogleMark />
+              Sign in with Google
+            </button>
+          )}
           <p className="text-center text-sm text-lav-700">
             New to Hirevo? <Link className="font-semibold text-lav-500 hover:text-lav-900" state={{ enterSignup: true }} to="/signup">Create an account</Link>
           </p>
           {routeState?.signupSuccess && <p aria-live="polite" className="text-center text-xs font-medium text-emerald-700">Your account is ready. Sign in to continue.</p>}
+          {routeState?.signedOut && <p aria-live="polite" className="text-center text-xs font-medium text-lav-700">You’re signed out. Sign in with Google or your email.</p>}
           {status && <p aria-live="polite" className="text-center text-xs text-lav-700">{status}</p>}
         </form>
       </section>

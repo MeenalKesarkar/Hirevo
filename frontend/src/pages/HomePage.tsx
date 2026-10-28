@@ -271,7 +271,7 @@ export default function HomePage() {
     } catch {
       // The local session is cleared by signOut even when the API is unavailable.
     }
-    navigate("/login", { replace: true });
+    navigate("/login", { replace: true, state: { signedOut: true } });
   };
 
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {

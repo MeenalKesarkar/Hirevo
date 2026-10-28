@@ -78,6 +78,24 @@ export async function signIn(email: string, password: string, rememberMe: boolea
   storeSession(payload.accessToken, payload.user, rememberMe);
 }
 
+export async function signInWithGoogle(credential: string, rememberMe: boolean): Promise<void> {
+  const response = await fetch(`${API_BASE}/api/auth/google`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credential }),
+  });
+  const payload = await response.json().catch(() => ({})) as {
+    error?: string;
+    accessToken?: string;
+    user?: HirevoUser;
+  };
+  if (!response.ok || !payload.accessToken || !payload.user) {
+    throw new Error(payload.error ?? "Google sign-in failed. Please try again.");
+  }
+  storeSession(payload.accessToken, payload.user, rememberMe);
+}
+
 export async function signUp(input: {
   name: string;
   email: string;

@@ -32,5 +32,5 @@ The API selects the `hirevo` database from the URI. MongoDB creates it when data
 
 Refresh tokens are stored as SHA-256 hashes, rotated on refresh, and removed after expiry. Access tokens last 15 minutes; refresh tokens last 7 days.
 
-The Google button on the frontend is not connected to OAuth yet. Google OAuth needs its client ID, callback URL, and provider configuration before it can authenticate users.
+Google sign-in uses Google Identity Services ID tokens verified by the backend. Create a Google OAuth **Web application** client, add `http://localhost:5173` as an authorized JavaScript origin, then set the same client ID as `GOOGLE_CLIENT_ID` in `backend/.env` and `VITE_GOOGLE_CLIENT_ID` in `frontend/.env.local`. Restart both servers after setting the values. No Google client secret is needed for this ID-token flow.
 

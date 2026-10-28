@@ -3,6 +3,7 @@ import type { Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
 import { env } from "../config/env.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -12,6 +13,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { hashToken, issueTokenPair, REFRESH_COOKIE, REFRESH_MAX_AGE_MS } from "../utils/tokens.js";
 
 export const authRouter = Router();
+const googleOAuthClient = new OAuth2Client();
 const registerSchema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.email().transform((email) => email.toLowerCase()),
@@ -21,6 +23,7 @@ const credentialsSchema = z.object({
   email: z.email().transform((email) => email.toLowerCase()),
   password: z.string().min(1).max(72),
 });
+const googleCredentialSchema = z.object({ credential: z.string().min(1).max(20_000) });
 
 function setRefreshCookie(response: Response, token: string): void {
   response.cookie(REFRESH_COOKIE, token, {
@@ -44,10 +47,63 @@ authRouter.post("/register", asyncHandler(async (request, response) => {
 authRouter.post("/login", asyncHandler(async (request, response) => {
   const input = credentialsSchema.parse(request.body);
   const user = await User.findOne({ email: input.email }).select("+passwordHash");
-  if (!user || !(await bcrypt.compare(input.password, user.passwordHash))) {
+  if (!user?.passwordHash || !(await bcrypt.compare(input.password, user.passwordHash))) {
     response.status(401).json({ error: "Email or password is incorrect." });
     return;
   }
+  const tokens = await issueTokenPair(user);
+  setRefreshCookie(response, tokens.refreshToken);
+  response.json({
+    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    accessToken: tokens.accessToken,
+  });
+}));
+
+authRouter.post("/google", asyncHandler(async (request, response) => {
+  if (!env.GOOGLE_CLIENT_ID) {
+    response.status(503).json({ error: "Google sign-in is not configured on the server." });
+    return;
+  }
+
+  const { credential } = googleCredentialSchema.parse(request.body);
+  let payload;
+  try {
+    const ticket = await googleOAuthClient.verifyIdToken({ idToken: credential, audience: env.GOOGLE_CLIENT_ID });
+    payload = ticket.getPayload();
+  } catch {
+    response.status(401).json({ error: "Google could not verify this sign-in. Please try again." });
+    return;
+  }
+
+  const googleId = payload?.sub;
+  const email = payload?.email?.trim().toLowerCase();
+  if (!googleId || !email || payload?.email_verified !== true) {
+    response.status(401).json({ error: "A verified Google email is required to sign in." });
+    return;
+  }
+
+  let user = await User.findOne({ googleId }).select("+googleId");
+  if (!user) {
+    user = await User.findOne({ email }).select("+googleId");
+    if (user) {
+      if (user.googleId && user.googleId !== googleId) {
+        response.status(409).json({ error: "This email is already connected to a different Google account." });
+        return;
+      }
+      const googleIsAuthoritativeForEmail = email.endsWith("@gmail.com") || Boolean(payload.hd);
+      if (!googleIsAuthoritativeForEmail) {
+        response.status(409).json({ error: "Sign in with your password first to connect this Google account." });
+        return;
+      }
+      user.googleId = googleId;
+      await user.save();
+    } else {
+      const suggestedName = payload.name?.trim().slice(0, 100) || email.split("@")[0];
+      const name = suggestedName.length >= 2 ? suggestedName : "Google member";
+      user = await User.create({ name, email, googleId, role: "candidate" });
+    }
+  }
+
   const tokens = await issueTokenPair(user);
   setRefreshCookie(response, tokens.refreshToken);
   response.json({

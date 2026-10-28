@@ -5,7 +5,8 @@ export type UserRole = "candidate" | "recruiter" | "admin";
 export interface UserRecord {
   name: string;
   email: string;
-  passwordHash: string;
+  passwordHash?: string;
+  googleId?: string;
   role: UserRole;
   createdAt: Date;
   updatedAt: Date;
@@ -15,7 +16,8 @@ const userSchema = new Schema<UserRecord>(
   {
     name: { type: String, required: true, trim: true, minlength: 2, maxlength: 100 },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
-    passwordHash: { type: String, required: true, select: false },
+    passwordHash: { type: String, select: false },
+    googleId: { type: String, unique: true, sparse: true, select: false },
     role: { type: String, enum: ["candidate", "recruiter", "admin"], default: "candidate" },
   },
   { timestamps: true },
