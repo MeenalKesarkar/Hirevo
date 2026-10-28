@@ -265,3 +265,70 @@
   .profile-bottom-nav > button:hover .profile-nav-label, .profile-bottom-nav > button:focus-visible .profile-nav-label, .profile-bottom-nav > button.is-active .profile-nav-label { max-width: 58px; }
 }
 .profile-bottom-nav { right: auto; left: 50vw; margin-inline: 0; transform: translate3d(-50%, 0, 0); }
+.profile-bottom-nav { --nav-item-rest-width: 76px; }
+.profile-bottom-nav > button:hover:not(.is-active),
+.profile-bottom-nav > button:focus-visible:not(.is-active) {
+  min-width: var(--nav-item-rest-width);
+  color: #f6eadd;
+  background: rgb(255 246 232 / 12%);
+}
+.profile-bottom-nav > button:hover:not(.is-active) .profile-nav-label,
+.profile-bottom-nav > button:focus-visible:not(.is-active) .profile-nav-label { max-width: 0; opacity: 0; transform: translateX(-4px); }
+@media (min-width: 981px) and (max-width: 1199px) { .profile-bottom-nav { --nav-item-rest-width: 72px; } }
+@media (min-width: 701px) and (max-width: 980px) { .profile-bottom-nav { --nav-item-rest-width: 64px; } }
+@media (max-width: 700px) { .profile-bottom-nav { --nav-item-rest-width: 42px; } }
+
+/* Keep profile navigation dimensions and active behavior in sync with Home and People. */
+.profile-bottom-nav {
+  right: auto;
+  bottom: 18px;
+  left: 50%;
+  width: max-content;
+  max-width: calc(100vw - 28px);
+  height: 64px;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  transform: translateX(-50%);
+}
+.profile-bottom-nav > button {
+  min-width: 54px;
+  height: 50px;
+  transition: min-width .28s cubic-bezier(.2,.8,.2,1), color .2s, background .2s;
+}
+.profile-bottom-nav > button.is-active {
+  min-width: 116px;
+  color: #351a2e;
+  background: #fff6e8;
+}
+.profile-bottom-nav > button.is-active .profile-nav-label {
+  max-width: 68px;
+  opacity: 1;
+  transform: translateX(0);
+}
+.profile-bottom-nav > button:hover:not(.is-active),
+.profile-bottom-nav > button:focus-visible:not(.is-active) {
+  min-width: var(--nav-item-rest-width, 54px);
+  color: #f6eadd;
+  background: rgb(255 246 232 / 12%);
+}
+.profile-bottom-nav > button:hover:not(.is-active) .profile-nav-label,
+.profile-bottom-nav > button:focus-visible:not(.is-active) .profile-nav-label { max-width: 0; opacity: 0; transform: translateX(-4px); }
+.profile-bottom-nav > button:focus-visible { outline: 2px solid #dfb6a9; outline-offset: 2px; }
+@media (min-width: 981px) {
+  .profile-bottom-nav { width: min(520px, calc(100vw - 48px)); height: 72px; justify-content: space-around; padding: 8px 12px; }
+  .profile-bottom-nav > button { min-width: 76px; height: 54px; }
+  .profile-bottom-nav > button.is-active { min-width: 146px; }
+}
+@media (min-width: 701px) and (max-width: 980px) {
+  .profile-bottom-nav { width: min(460px, calc(100vw - 48px)); height: 66px; }
+  .profile-bottom-nav > button { min-width: 64px; height: 50px; padding-inline: 10px; }
+  .profile-bottom-nav > button.is-active { min-width: 122px; }
+}
+@media (max-width: 700px) {
+  .profile-bottom-nav { bottom: 12px; width: calc(100vw - 24px); height: 58px; padding: 5px; }
+  .profile-bottom-nav > button { min-width: 42px; height: 46px; padding-inline: 10px; gap: 6px; }
+  .profile-bottom-nav > button svg { width: 18px; height: 18px; }
+  .profile-bottom-nav > button.is-active { min-width: 92px; }
+  .profile-bottom-nav > button.is-active .profile-nav-label { max-width: 58px; }
+}

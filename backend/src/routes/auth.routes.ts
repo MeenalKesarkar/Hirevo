@@ -206,10 +206,24 @@ authRouter.patch("/me", requireAuth, asyncHandler(async (request, response) => {
 }));
 
 authRouter.get("/people", requireAuth, asyncHandler(async (request, response) => {
-  const people = await User.find({ _id: { $ne: request.auth?.userId } })
+  const query = z.object({
+    q: z.string().trim().max(100).optional(),
+    role: z.enum(["candidate", "recruiter"]).optional(),
+    limit: z.coerce.number().int().min(1).max(50).default(6),
+  }).parse(request.query);
+  const filter: Record<string, unknown> = {
+    _id: { $ne: request.auth?.userId },
+    role: query.role ? query.role : { $in: ["candidate", "recruiter"] },
+  };
+  if (query.q) {
+    const safeSearch = query.q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = { $regex: safeSearch, $options: "i" };
+    filter.$or = [{ name: pattern }, { headline: pattern }, { location: pattern }, { skills: pattern }];
+  }
+  const people = await User.find(filter)
     .select("name role headline location skills createdAt")
     .sort({ createdAt: -1 })
-    .limit(6)
+    .limit(query.limit)
     .lean();
   response.json({ people });
 }));

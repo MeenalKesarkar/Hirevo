@@ -792,6 +792,20 @@
   .profile-composer .publish-button { min-height: 38px; }
 }
 
+/* Prevent hover from expanding a second capsule item and overflowing the bar */
+.mobile-bottom-nav { --nav-item-rest-width: 76px; }
+.mobile-bottom-nav > button:hover:not(.mobile-nav-current),
+.mobile-bottom-nav > button:focus-visible:not(.mobile-nav-current) {
+  min-width: var(--nav-item-rest-width);
+  color: #f6eadd;
+  background: rgb(255 246 232 / 12%);
+}
+.mobile-bottom-nav > button:hover:not(.mobile-nav-current) > span:last-child,
+.mobile-bottom-nav > button:focus-visible:not(.mobile-nav-current) > span:last-child { max-width: 0; opacity: 0; transform: translateX(-4px); }
+@media (min-width: 981px) and (max-width: 1199px) { .mobile-bottom-nav { --nav-item-rest-width: 72px; } }
+@media (min-width: 701px) and (max-width: 980px) { .mobile-bottom-nav { --nav-item-rest-width: 64px; } }
+@media (max-width: 700px) { .mobile-bottom-nav { --nav-item-rest-width: 42px; } }
+
 /* Center the fixed capsules against the viewport, not page content width */
 .mobile-bottom-nav,
 .profile-bottom-nav {

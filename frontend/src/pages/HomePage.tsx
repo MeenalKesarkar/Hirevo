@@ -28,7 +28,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { apiRequest, getCurrentUser, signOut } from "../services/api";
 import "./HomePage.css";
 
@@ -167,6 +167,14 @@ export default function HomePage() {
   const [activeNav, setActiveNav] = useState("home");
   const [notice, setNotice] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const routeState = location.state as { showMessagesNotice?: boolean } | null;
+    if (!routeState?.showMessagesNotice) return;
+    setNotice("Messaging is coming soon.");
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   const displayName = currentUser?.name ?? "Hirevo member";
   const avatarInitials = initialsFor(displayName) || "HM";
@@ -432,8 +440,9 @@ export default function HomePage() {
       </main>
       <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
         <button aria-current={activeNav === "home" ? "page" : undefined} className={activeNav === "home" ? "mobile-nav-current" : ""} onClick={() => navigateToSection("feed", "home")} type="button"><House size={20} /><span>Home</span></button>
-        <button aria-current={activeNav === "people" ? "page" : undefined} className={activeNav === "people" ? "mobile-nav-current" : ""} onClick={() => navigateToSection("community", "people")} type="button"><Users size={20} /><span>People</span></button>
+        <button aria-current={activeNav === "people" ? "page" : undefined} className={activeNav === "people" ? "mobile-nav-current" : ""} onClick={() => navigate("/people")} type="button"><Users size={20} /><span>People</span></button>
         <button aria-current={activeNav === "jobs" ? "page" : undefined} className={activeNav === "jobs" ? "mobile-nav-current" : ""} onClick={() => navigateToSection("opportunities", "jobs")} type="button"><BriefcaseBusiness size={20} /><span>Jobs</span></button>
+        <button aria-current={activeNav === "messages" ? "page" : undefined} className={activeNav === "messages" ? "mobile-nav-current" : ""} onClick={() => { setActiveNav("messages"); setNotice("Messaging is coming soon."); }} type="button"><MessageCircle size={20} /><span>Messages</span></button>
         <button aria-current={activeNav === "profile" ? "page" : undefined} className={activeNav === "profile" ? "mobile-nav-current" : ""} onClick={() => navigate("/profile")} type="button"><UserRound size={20} /><span>Profile</span></button>
       </nav>
     </div>

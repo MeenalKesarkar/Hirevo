@@ -6,6 +6,7 @@ import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import SignupPage from "../pages/SignupPage";
 import ProfilePage from "../pages/ProfilePage";
+import PeoplePage from "../pages/PeoplePage";
 import { isAuthenticated, subscribeToAuthChanges } from "../services/api";
 
 function RequireAuth() {
@@ -45,6 +46,7 @@ export default function AppRouter() {
             <Route path="/" element={<HomePage />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/people" element={<PeoplePage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

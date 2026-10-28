@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
-import { ArrowRight, ArrowUpRight, BarChart3, BriefcaseBusiness, Camera, Check, ChevronRight, FileText, GraduationCap, House, LoaderCircle, LogOut, MapPin, Pencil, Plus, Sparkles, Trash2, UserRound, Users } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BarChart3, BriefcaseBusiness, Camera, Check, ChevronRight, FileText, GraduationCap, House, LoaderCircle, LogOut, MapPin, MessageCircle, Pencil, Plus, Sparkles, Trash2, UserRound, Users } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { apiRequest, getCurrentUser, signOut } from "../services/api";
 import "./ProfilePage.css";
@@ -362,7 +362,7 @@ export default function ProfilePage() {
           <section className="profile-section-card profile-network-card">
             <div className="profile-section-heading"><div><span className="profile-eyebrow">YOUR NEXT CONVERSATION</span><h2>Stay connected</h2></div><span className="profile-section-icon"><Users size={18} /></span></div>
             <p>Explore the community and meet people who share your interests.</p>
-            <Link to="/#community">Explore people <ArrowRight size={15} /></Link>
+            <Link to="/people">Explore people <ArrowRight size={15} /></Link>
           </section>
 
         </aside>
@@ -370,8 +370,9 @@ export default function ProfilePage() {
 
       <nav className="profile-bottom-nav" aria-label="Main navigation">
         <button onClick={() => navigate("/")} type="button"><span className="profile-nav-icon"><House size={19} /></span><span className="profile-nav-label">Home</span></button>
-        <button onClick={() => navigate("/#community")} type="button"><span className="profile-nav-icon"><Users size={19} /></span><span className="profile-nav-label">People</span></button>
+        <button onClick={() => navigate("/people")} type="button"><span className="profile-nav-icon"><Users size={19} /></span><span className="profile-nav-label">People</span></button>
         <button onClick={() => navigate("/#opportunities")} type="button"><span className="profile-nav-icon"><BriefcaseBusiness size={19} /></span><span className="profile-nav-label">Jobs</span></button>
+        <button onClick={() => navigate("/", { state: { showMessagesNotice: true } })} type="button"><span className="profile-nav-icon"><MessageCircle size={19} /></span><span className="profile-nav-label">Messages</span></button>
         <button className="is-active" aria-current="page" onClick={() => navigate("/profile")} type="button"><span className="profile-nav-icon"><UserRound size={19} /></span><span className="profile-nav-label">Profile</span></button>
       </nav>
     </div>
