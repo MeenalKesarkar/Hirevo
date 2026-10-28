@@ -25,16 +25,16 @@ function HirevoMark() {
       role="img"
       aria-label="Hirevo mark: two linked nodes"
     >
-      <rect width="96" height="96" rx="28" fill="#2A1A5E" />
+      <rect width="96" height="96" rx="28" fill="#351A2E" />
       <path
         d="M38 48H58"
         fill="none"
-        stroke="#F6F3FF"
+        stroke="#FFF9ED"
         strokeWidth="6"
         strokeLinecap="round"
       />
-      <circle cx="30" cy="48" r="12" fill="#F6F3FF" />
-      <circle cx="66" cy="48" r="12" fill="#CBBDF4" />
+      <circle cx="30" cy="48" r="12" fill="#FFF9ED" />
+      <circle cx="66" cy="48" r="12" fill="#D7B9AD" />
     </svg>
   );
 }

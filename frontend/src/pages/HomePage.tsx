@@ -11,6 +11,7 @@ import {
   Clock3,
   Compass,
   Flame,
+  House,
   Heart,
   ImagePlus,
   LoaderCircle,
@@ -24,6 +25,7 @@ import {
   Sparkles,
   Trash2,
   Users,
+  UserRound,
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router";
@@ -162,6 +164,7 @@ export default function HomePage() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const currentUser = getCurrentUser();
   const [query, setQuery] = useState("");
+  const [activeNav, setActiveNav] = useState("home");
   const [notice, setNotice] = useState("");
   const navigate = useNavigate();
 
@@ -300,9 +303,10 @@ export default function HomePage() {
           </form>
 
           <nav className="topbar-links" aria-label="Primary navigation">
-            <a className="top-link top-link-active" href="#feed"><Compass size={18} /><span>Home</span></a>
-            <a className="top-link" href="#opportunities"><BriefcaseBusiness size={18} /><span>Jobs</span></a>
-            <a className="top-link" href="#community"><Users size={18} /><span>People</span></a>
+            <a aria-current={activeNav === "home" ? "page" : undefined} className={`top-link ${activeNav === "home" ? "top-link-active" : ""}`} href="#feed" onClick={() => setActiveNav("home")}><House size={19} /><span>Home</span></a>
+            <a aria-current={activeNav === "people" ? "page" : undefined} className={`top-link ${activeNav === "people" ? "top-link-active" : ""}`} href="#community" onClick={() => setActiveNav("people")}><Users size={19} /><span>People</span></a>
+            <a aria-current={activeNav === "jobs" ? "page" : undefined} className={`top-link ${activeNav === "jobs" ? "top-link-active" : ""}`} href="#opportunities" onClick={() => setActiveNav("jobs")}><BriefcaseBusiness size={19} /><span>Jobs</span></a>
+            <a aria-current={activeNav === "profile" ? "page" : undefined} className={`top-link ${activeNav === "profile" ? "top-link-active" : ""}`} href="#profile" onClick={() => setActiveNav("profile")}><UserRound size={19} /><span>Profile</span></a>
           </nav>
 
           <div className="topbar-actions">
@@ -332,6 +336,13 @@ export default function HomePage() {
             </div>
           </section>
 
+          <section className="composer surface profile-composer" id="composer" aria-label="Create a post">
+            <div className="composer-top"><div className={`avatar avatar-${avatarTone}`}>{avatarInitials}</div>{composerOpen ? <textarea autoFocus aria-label="Write a post" maxLength={2000} onChange={(event) => setDraft(event.target.value)} placeholder={`What’s on your mind, ${displayName.split(" ")[0]}? Share a win, an idea, or a question...`} value={draft} /> : <button className="composer-placeholder" onClick={() => setComposerOpen(true)}>What’s on your mind, {displayName.split(" ")[0]}?</button>}</div>
+            {imageData && <div className="composer-image-preview"><img alt="Selected post attachment preview" src={imageData} /><button aria-label="Remove selected image" onClick={() => setImageData("")}><X size={15} /></button></div>}
+            {postError && <p className="post-error" role="alert">{postError}</p>}
+            <div className="composer-bottom"><div><span className="composer-audience"><Users size={14} /> Your community <ChevronDown size={13} /></span><span className="composer-hint">A thoughtful update can start something.</span></div><div className="composer-tools"><label className="attach-image-button" title="Add a photo"><ImagePlus size={16} /><span>Photo</span><input accept="image/jpeg,image/png,image/webp,image/gif" aria-label="Attach a photo" onChange={handleImageSelect} type="file" /></label><button className="publish-button" disabled={!composerOpen || !draft.trim() || isPublishing} onClick={() => void publishPost()}>{isPublishing ? <LoaderCircle className="spinning" size={14} /> : <Send size={14} />}{isPublishing ? "Sharing…" : "Share post"}</button></div></div>
+          </section>
+
           <nav className="surface side-nav" aria-label="Your space">
             <p className="side-eyebrow">YOUR SPACE</p>
             {navItems.map(({ label, icon: Icon, href }, index) => (
@@ -357,38 +368,13 @@ export default function HomePage() {
         <section className="main-column" aria-label="Your Hirevo feed">
           <section className="welcome-panel">
             <div className="welcome-decoration welcome-decoration-a" /><div className="welcome-decoration welcome-decoration-b" />
-            <div className="welcome-copy"><span className="welcome-kicker"><Sparkles size={14} /> YOUR NEXT CHAPTER</span><h1>Good things happen<br />when you <em>show up.</em></h1><p>Find your people. Find your next move. Make work feel more like you.</p></div>
+            <div className="welcome-copy"><span className="welcome-kicker"><Sparkles size={14} /> WELCOME BACK, {displayName.split(" ")[0].toUpperCase()}</span><h1>Your next move<br />starts <em>here.</em></h1><p>Discover roles, meet people in your field, and share what you’re working on.</p></div>
             <div className="welcome-art" aria-hidden="true"><div className="welcome-art-ring" /><div className="welcome-art-card"><span className="welcome-art-spark">✳</span><span className="welcome-art-dot" /><span className="welcome-art-line" /><span className="welcome-art-line short" /><span className="welcome-art-chip">your next move</span></div><div className="welcome-art-tag">✨ <span>made for you</span></div></div>
             <a className="welcome-cta" href="#opportunities">Find your next role <ArrowRight size={16} /></a>
           </section>
 
-          <section className="prompt-strip" aria-label="Suggested actions">
-            <span className="prompt-spark"><Sparkles size={16} /></span>
-            <div><strong>A little momentum goes a long way.</strong><span>Share what you’re working toward today.</span></div>
-            <button onClick={() => { setComposerOpen(true); document.querySelector("#composer")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>Write an update <ArrowRight size={15} /></button>
-          </section>
-
-          <section className="composer surface" id="composer">
-            <div className="composer-top"><div className={`avatar avatar-${avatarTone}`}>{avatarInitials}</div>{composerOpen ? <textarea autoFocus aria-label="Write a post" maxLength={2000} onChange={(event) => setDraft(event.target.value)} placeholder={`What’s on your mind, ${displayName.split(" ")[0]}? Share a win, an idea, or a question...`} value={draft} /> : <button className="composer-placeholder" onClick={() => setComposerOpen(true)}>What’s on your mind, {displayName.split(" ")[0]}?</button>}</div>
-            {imageData && <div className="composer-image-preview"><img alt="Selected post attachment preview" src={imageData} /><button aria-label="Remove selected image" onClick={() => setImageData("")}><X size={15} /></button></div>}
-            {postError && <p className="post-error" role="alert">{postError}</p>}
-            <div className="composer-bottom"><div><span className="composer-audience"><Users size={14} /> Your community <ChevronDown size={13} /></span><span className="composer-hint">A thoughtful update can start something.</span></div><div className="composer-tools"><label className="attach-image-button" title="Add a photo"><ImagePlus size={16} /><span>Photo</span><input accept="image/jpeg,image/png,image/webp,image/gif" aria-label="Attach a photo" onChange={handleImageSelect} type="file" /></label><button className="publish-button" disabled={!composerOpen || !draft.trim() || isPublishing} onClick={() => void publishPost()}>{isPublishing ? <LoaderCircle className="spinning" size={14} /> : <Send size={14} />}{isPublishing ? "Sharing…" : "Share post"}</button></div></div>
-          </section>
-
           <section className="feed-section" aria-labelledby="feed-heading">
             <div className="section-heading"><div><span className="section-eyebrow">A good place to start</span><h2 id="feed-heading">Your community</h2></div><button className="feed-sort">For you <ChevronDown size={15} /></button></div>
-            <div className="story-row" aria-label="People to catch up with">
-              <button className="story-add" onClick={() => setNotice("Your story feature is coming soon.")}><span className="story-ring story-ring-add"><span><Plus size={19} /></span></span><small>Your story</small></button>
-              {[
-                { name: "Priya", initials: "PS", tone: "rose", label: "Design" },
-                { name: "Arjun", initials: "AM", tone: "blue", label: "Engineering" },
-                { name: "Rhea", initials: "RD", tone: "gold", label: "Ideas" },
-                { name: "Kabir", initials: "KN", tone: "mint", label: "Hiring" },
-                { name: "Simran", initials: "SI", tone: "lilac", label: "Product" },
-              ].map((person) => <button className="story-item" key={person.name} onClick={() => setNotice(`${person.name}’s latest update is in your feed.`)}><span className="story-ring"><span className={`avatar avatar-${person.tone}`}>{person.initials}</span></span><small>{person.name}<span>{person.label}</span></small></button>)}
-              <button className="story-next" aria-label="More stories" onClick={() => setNotice("You’re up to date with your community.")}><ChevronRight size={17} /></button>
-            </div>
-
             <div className="post-list">
               {isLoadingPosts && <div className="post-state surface"><LoaderCircle className="spinning" size={18} /> Loading your community…</div>}
               {!isLoadingPosts && posts.length === 0 && <div className="post-state surface"><Sparkles size={18} /><strong>Your feed starts here</strong><span>Share a thought or a photo with your community.</span></div>}
@@ -439,7 +425,12 @@ export default function HomePage() {
           <div className="right-footer"><a href="#about">About</a><a href="#help">Help</a><a href="#terms">Terms</a><span>Built for what’s next <span aria-hidden="true">✳</span></span></div>
         </aside>
       </main>
-      <nav className="mobile-bottom-nav" aria-label="Mobile navigation"><a className="mobile-nav-current" href="#feed"><Compass size={20} /><span>Home</span></a><a href="#opportunities"><BriefcaseBusiness size={20} /><span>Jobs</span></a><a href="#community"><Users size={20} /><span>People</span></a><a href="#profile"><span className={`avatar avatar-${avatarTone}`}>{avatarInitials}</span><span>Profile</span></a></nav>
+      <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
+        <a aria-current={activeNav === "home" ? "page" : undefined} className={activeNav === "home" ? "mobile-nav-current" : ""} href="#feed" onClick={() => setActiveNav("home")}><House size={20} /><span>Home</span></a>
+        <a aria-current={activeNav === "people" ? "page" : undefined} className={activeNav === "people" ? "mobile-nav-current" : ""} href="#community" onClick={() => setActiveNav("people")}><Users size={20} /><span>People</span></a>
+        <a aria-current={activeNav === "jobs" ? "page" : undefined} className={activeNav === "jobs" ? "mobile-nav-current" : ""} href="#opportunities" onClick={() => setActiveNav("jobs")}><BriefcaseBusiness size={20} /><span>Jobs</span></a>
+        <a aria-current={activeNav === "profile" ? "page" : undefined} className={activeNav === "profile" ? "mobile-nav-current" : ""} href="#profile" onClick={() => setActiveNav("profile")}><UserRound size={20} /><span>Profile</span></a>
+      </nav>
     </div>
   );
 }
